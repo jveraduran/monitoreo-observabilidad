@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - '--config.file=/prom/prometheus.yml'
+    volumes:
+      - /root/prom/prometheus.yml:/prom/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - prom-net
+
+  pushgateway:
+    image: prom/pushgateway:latest
+    container_name: pushgateway
+    ports:
+      - "9091:9091"
+    networks:
+      - prom-net
+
+networks:
+  prom-net:
+    driver: bridge
