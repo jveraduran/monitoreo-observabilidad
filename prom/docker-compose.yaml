@@ -5,11 +5,19 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     command:
-      - '--config.file=/prom/prometheus.yml'
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
     volumes:
-      - /root/prom/prometheus.yml:/prom/prometheus.yml
+      # Archivo de configuración Prometheus
+      - /root/monitoreo-observabilidad/prom/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      # Persistencia de datos
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
+    depends_on:
+      - pushgateway
+      - node-exporter
     networks:
       - prom-net
 
@@ -21,6 +29,17 @@ services:
     networks:
       - prom-net
 
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - prom-net
+
 networks:
   prom-net:
     driver: bridge
+
+volumes:
+  prometheus_data:
