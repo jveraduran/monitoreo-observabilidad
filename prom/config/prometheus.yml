@@ -13,7 +13,7 @@ scrape_configs:
       - targets: ['pushgateway:9091']
 
 remote_write:
-  - url: https://prometheus-prod-56-prod-us-east-2.grafana.net/api/prom/push
+  - url: <GRAFANA_INSTANCE_ID>
     basic_auth:
       username: "<instance_id>"
       password: "api_key"
