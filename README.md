@@ -96,6 +96,12 @@ remote_write:
 
 ### 3️⃣ `push_metrics.py`
 
+Instala previamente las siguientes dependencias de python
+
+```
+pip3 install prometheus-client
+```
+
 ```python
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 import random, time
@@ -119,20 +125,34 @@ while True:
 ## ⚙️ Secuencia de Comandos
 
 ```bash
-# 1️⃣ Levantar Prometheus y Pushgateway
+# 🧩 1️⃣ Crear entorno virtual de Python
+python3 -m venv /root/monitoreo-observabilidad/venv
+
+# 🧠 2️⃣ Activar el entorno virtual
+source /root/monitoreo-observabilidad/venv/bin/activate
+
+# 📦 3️⃣ Instalar los paquetes necesarios
+pip install prometheus-client requests snappy protobuf
+
+# 🚀 4️⃣ Levantar Prometheus, Pushgateway y Node Exporter
+cd /root/monitoreo-observabilidad
 docker compose up -d
 
-# 2️⃣ Verificar servicios activos
+# 🔍 5️⃣ Verificar servicios activos
 docker ps
 
-# 3️⃣ Verificar que Prometheus está accesible
+# 🌐 6️⃣ Verificar que Prometheus está accesible
+# (abre en tu navegador)
 open http://localhost:9090
 
-# 4️⃣ Verificar que Pushgateway está recibiendo métricas
+# 🌐 7️⃣ Verificar que Pushgateway está recibiendo métricas
 open http://localhost:9091
 
-# 5️⃣ Ejecutar el script de métricas
-python3 push_metrics.py
+# 🧮 8️⃣ Ejecutar el script de métricas (desde el entorno virtual activo)
+python /root/monitoreo-observabilidad/prom/prometheus-import.py
+
+# 🧾 9️⃣ (Opcional) Salir del entorno virtual cuando termines
+deactivate
 ```
 
 ---
