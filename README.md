@@ -170,8 +170,8 @@ graph LR
     A[Python Script] -- Push Metrics --> B[Pushgateway]
     B -- Scrape --> C[Prometheus Local]
     C -- Remote Write --> D[Grafana Cloud]
-    C --> E[Prometheus UI\\nlocalhost:9090]
-    B --> F[Pushgateway UI\\nlocalhost:9091]
+    C --> E[Prometheus UI<br>localhost:9090]
+    B --> F[Pushgateway UI<br>localhost:9091]
 ```
 
 ---
