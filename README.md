@@ -127,12 +127,14 @@ while True:
 ```bash
 # 🧩 1️⃣ Crear entorno virtual de Python
 python3 -m venv /root/monitoreo-observabilidad/venv
+(opcion kodecloud) python3 -m venv .
 
 # 🧠 2️⃣ Activar el entorno virtual
 source /root/monitoreo-observabilidad/venv/bin/activate
+(opcion kodecloud) source venv/bin/activate
 
 # 📦 3️⃣ Instalar los paquetes necesarios
-pip install prometheus-client requests snappy protobuf
+pip install prometheus-client
 
 # 🚀 4️⃣ Levantar Prometheus, Pushgateway y Node Exporter
 cd /root/monitoreo-observabilidad
@@ -149,7 +151,8 @@ open http://localhost:9090
 open http://localhost:9091
 
 # 🧮 8️⃣ Ejecutar el script de métricas (desde el entorno virtual activo)
-python /root/monitoreo-observabilidad/prom/prometheus-import.py
+python3 /root/monitoreo-observabilidad/prom/prometheus-import.py
+(opcion kodecloud) python3 prometheus-import.py
 
 # 🧾 9️⃣ (Opcional) Salir del entorno virtual cuando termines
 deactivate
