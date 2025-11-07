@@ -127,10 +127,12 @@ while True:
 ```bash
 # 🧩 1️⃣ Crear entorno virtual de Python
 python3 -m venv /root/monitoreo-observabilidad/venv
+(opcion kodecloud) apk add python3 py3-pip
 (opcion kodecloud) python3 -m venv .
 
 # 🧠 2️⃣ Activar el entorno virtual
 source /root/monitoreo-observabilidad/venv/bin/activate
+(opcion kodecloud) cd ..
 (opcion kodecloud) source venv/bin/activate
 
 # 📦 3️⃣ Instalar los paquetes necesarios
