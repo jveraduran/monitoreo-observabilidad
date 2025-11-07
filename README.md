@@ -206,9 +206,9 @@ deactivate
 
 ```mermaid
 graph LR
-    A[Python Script] -- Push Metrics --> B[Pushgateway]
-    B -- Scrape --> C[Prometheus Local]
-    C -- Remote Write --> D[Grafana Cloud]
+    A[Python Script] -- "Push (envía métricas)" --> B[Pushgateway]
+    B -- "Pull (Prometheus hace scrape)" --> C[Prometheus Server]
+    C -- "Remote Write (Push a la nube)" --> D[Grafana Cloud]
     C --> E[Prometheus UI<br>localhost:9090]
     B --> F[Pushgateway UI<br>localhost:9091]
 ```
