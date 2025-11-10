@@ -291,6 +291,15 @@ python3 app.py
 ```bash
 curl http://localhost:8081/metrics
 ```
+7. Verifica métricas en Grafana Cloud:
+
+```bash
+app_temperature_celsius{instance="python_app"}
+```
+
+```bash
+app_cpu_usage_percent{instance="python_app"}
+```
 
 ---
 
