@@ -197,11 +197,11 @@ sudo systemctl status alloy
 
 ## 7️⃣ Verificar servicios corriendo
 
-```bash
 # cAdvisor
-```
+```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/metrics
 ```
+
 # Blackbox Exporter
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9115/metrics
