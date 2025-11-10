@@ -127,6 +127,12 @@ modules:
     timeout: 5s
 ```
 
+Iniciar las aplicaciones
+
+```
+docker compose up -d
+```
+
 ---
 
 ## 5️⃣ Configuración de Alloy `/etc/alloy/config.alloy`
