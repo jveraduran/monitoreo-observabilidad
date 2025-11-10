@@ -140,7 +140,6 @@ sudo docker compose up -d
 Agrega los siguientes bloques al final de tu archivo /etc/alloy/config.alloy
 
 ```hcl
-# Extra Exporters (cAdvisor)
 prometheus.scrape "extra_exporters" {
   targets = [
     {
@@ -151,7 +150,6 @@ prometheus.scrape "extra_exporters" {
   forward_to = [prometheus.remote_write.metrics_service.receiver]
 }
 
-# Blackbox Exporter
 prometheus.scrape "blackbox_http_probe" {
   targets = [
     {
@@ -171,7 +169,6 @@ prometheus.scrape "blackbox_http_probe" {
   forward_to      = [prometheus.remote_write.metrics_service.receiver]
 }
 
-# Python app custom metrics
 prometheus.scrape "python_app_metrics" {
   targets = [
     {
