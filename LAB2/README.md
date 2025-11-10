@@ -299,4 +299,4 @@ curl http://localhost:8081/metrics
 
 ---
 
-Este laboratorio documenta la instalación y configuración completa de **Alloy**, **Docker exporters** y **métricas custom**, listo para
+Este laboratorio documenta la instalación y configuración completa de **Alloy**, **Docker exporters** y **métricas custom**.
