@@ -297,6 +297,29 @@ curl http://localhost:8081/metrics
 * Blackbox Exporter permite monitorear disponibilidad y latencia de endpoints.
 * Python/Flask permite generar métricas custom para tus aplicaciones.
 
+```mermaid
+flowchart LR
+    EC2[EC2 Debian] --> Alloy[Alloy Collector]
+    Alloy --> cAdvisor[Docker: cAdvisor Exporter]
+    Alloy --> Blackbox[Docker: Blackbox Exporter]
+    Alloy --> PythonApp[Python Flask Metrics]
+    
+    cAdvisor --> Alloy
+    Blackbox --> Alloy
+    PythonApp --> Alloy
+    
+    Alloy --> PrometheusCloud[Prometheus Cloud]
+    PrometheusCloud --> GrafanaCloud[Grafana Cloud Dashboard]
+    
+    subgraph Docker
+        cAdvisor
+        Blackbox
+    end
+    
+    subgraph PythonAppInstance
+        PythonApp
+    end
+```
 ---
 
 Este laboratorio documenta la instalación y configuración completa de **Alloy**, **Docker exporters** y **métricas custom**.
