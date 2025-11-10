@@ -196,11 +196,13 @@ sudo systemctl status alloy
 
 ```bash
 # cAdvisor
+```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/metrics
-
+```
 # Blackbox Exporter
+```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9115/metrics
-
+```
 ---
 
 ## 8️⃣ Métricas de cAdvisor
@@ -227,7 +229,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9115/metrics
 
 ---
 
-## 10️⃣ Métricas custom Python/Flask
+## 1️⃣0️⃣ Métricas custom Python/Flask
 
 1. Instalar Python en Debian:
 
@@ -289,7 +291,7 @@ curl http://localhost:8081/metrics
 
 ---
 
-## 11️⃣ Observaciones
+## 1️⃣1️⃣ Observaciones
 
 * Alloy recolecta métricas locales y las envía a Grafana Cloud.
 * Blackbox Exporter permite monitorear disponibilidad y latencia de endpoints.
