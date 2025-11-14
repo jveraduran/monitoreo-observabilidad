@@ -189,7 +189,7 @@ remote_write:
 # 📡 Ejecutar Prometheus + Pushgateway
 
 ```bash
-docker compose up -d
+sudo docker compose up -d
 ```
 
 ---
