@@ -86,7 +86,7 @@ scrape_configs:
       - targets: ["pushgateway:9091"]
 
 remote_write:
-  - url: "<PROMETHEYUS_URL>"
+  - url: "<PROMETHEUS_URL>"
     basic_auth:
       username: "<GRAFANA_INSTANCE_ID>"
       password: "<GRAFANA_API_KEY>"
