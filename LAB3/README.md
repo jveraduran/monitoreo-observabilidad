@@ -187,7 +187,7 @@ docker compose up -d
 # 🐍 Ejecutar el script Python
 
 ```bash
-python3 app.py
+python3 promql.py
 ```
 
 ---
