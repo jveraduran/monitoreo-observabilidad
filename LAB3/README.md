@@ -201,6 +201,13 @@ sudo chown -R 65534:65534 data
 sudo chmod -R 775 data
 ```
 
+* Bajar el servidio de compose y volver a levantarlo
+
+```bash
+sudo docker compose down
+sudo docker compose up -d
+```
+
 ---
 
 # 🐍 Ejecutar el script Python
