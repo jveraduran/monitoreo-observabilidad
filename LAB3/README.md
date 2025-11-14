@@ -504,8 +504,10 @@ and   or   unless
 # OR: CPU alta o presencia de errores
 (app_cpu_usage_percent > 80) or (app_errors_total > 0)
 
-# UNLESS: muestra instancias 'up==0' que NO están en mantenimiento (ejemplo general)
-up == 0 unless on(instance) node_maintenance_mode == 1
+# UNLESS: Ocultar series donde la CPU está a menos de 10%.
+app_cpu_usage_percent
+  unless
+app_cpu_usage_percent < 10
 
 ```
 
