@@ -190,6 +190,15 @@ remote_write:
 
 ```bash
 sudo docker compose up -d
+sudo docker ps
+```
+* Si tienen un error al subier el servicio de Prometheus, ejecutar la siguiente corrección:
+
+```bash
+sudo rm -rf data
+sudo mkdir data
+sudo chown -R 65534:65534 data
+sudo chmod -R 775 data
 ```
 
 ---
