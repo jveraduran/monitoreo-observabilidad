@@ -98,6 +98,16 @@ Instalar librería Prometheus:
 pip install prometheus_client
 ```
 
+Clonar repositorio
+```bash
+git clone https://github.com/jveraduran/monitoreo-observabilidad.git
+```
+
+Ingresar a la carpeta del laboratorio
+
+```bash
+cd monitoreo-observabilidad/LAB3
+```
 ---
 
 # 🛠️ Archivos del Proyecto
