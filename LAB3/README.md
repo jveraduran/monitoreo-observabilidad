@@ -300,22 +300,34 @@ histogram_quantile(
 ## Selección simple
 
 ```promql
-metric
-metric{job="app"}
-metric[5m]
+app_temperature_celsius{job="app_metrics_job"}
+app_requests_total{job="app_metrics_job"}
+app_request_latency_seconds_bucket{le="0.5", job="app_metrics_job"}
 ```
 
 ## Aritmética
 
 ```promql
-cpu_usage / 100
+app_cpu_usage_percent / 100
+rate(app_requests_total[1m])
 rate(app_requests_total[1m]) * 60
+rate(app_errors_total[1m]) * 60
+rate(app_errors_total[1m]) / rate(app_requests_total[1m]) * 100
+app_request_latency_seconds_sum / app_request_latency_seconds_count
+app_processing_time_seconds_sum / app_processing_time_seconds_count
+100 - app_cpu_usage_percent
+(app_temperature_celsius - 20) / (35 - 20)
+app_temperature_celsius / app_cpu_usage_percent
+avg(app_cpu_usage_percent)
+avg_over_time(app_cpu_usage_percent[5m]) / 100
 ```
 
 ## Comparaciones
 
 ```promql
-app_cpu_usage_percent > 80
+app_cpu_usage_percent >= 0
+app_temperature_celsius > 15
+app_requests_total >= 1
 ```
 
 ## Agrupaciones
@@ -412,7 +424,17 @@ label_replace(app_requests_total, "host", "$1", "instance", "(.*):.*")
 ## Joins entre series
 
 ```promql
-sum(rate(a[5m])) by (job) * on(job) group_left(version) build_info
+rate(app_request_latency_seconds_sum[5m])
+  / on(job)
+    rate(app_requests_total[5m])
+
+app_cpu_usage_percent
+  * on(job, instance)
+    (
+      rate(app_errors_total[5m])
+        /
+      rate(app_requests_total[5m])
+    )
 ```
 
 ---
@@ -435,11 +457,18 @@ sum(rate(a[5m])) by (job) * on(job) group_left(version) build_info
 ```
 
 ```promql
-app_memory_free_mb + app_memory_used_mb
-app_memory_total_mb - app_memory_free_mb
-(app_cpu_usage_percent / 100) * app_cpu_cores
-(app_requests_total % 10)
-(app_cpu_usage_percent ^ 2)
+# Convertir CPU % a fracción (instant vector) — SIEMPRE funciona
+app_cpu_usage_percent / 100
+
+# CPU invertida (cuánto NO se usa) — instant vector
+100 - app_cpu_usage_percent
+
+# Normalizar temperatura entre 20 y 35 (instant vector)
+(app_temperature_celsius - 20) / (35 - 20)
+
+# Latencia media simple: sum / count (instant vectors si agregas _sum y _count)
+app_request_latency_seconds_sum / app_request_latency_seconds_count
+
 ```
 
 ## Comparación
@@ -449,9 +478,17 @@ app_memory_total_mb - app_memory_free_mb
 ```
 
 ```promql
-app_cpu_usage_percent > 80
-app_errors_total >= 1
-app_requests_total != 0
+# Comparación que casi siempre devuelve algo (temperatura en tu rango 20-35)
+app_temperature_celsius > 15
+
+# CPU válida (devuelve si cumple la condición)
+app_cpu_usage_percent > 50
+
+# Requests totales mayor que 0 (siempre verdadero después de empezar)
+app_requests_total > 0
+
+# Errores detectados (solo devuelve series si hay >0)
+app_errors_total > 0
 ```
 
 ## Lógicos
@@ -461,9 +498,15 @@ and   or   unless
 ```
 
 ```promql
-(app_cpu_usage_percent > 80) and (app_memory_free_mb < 500)
-(app_errors_total > 0) or (app_request_latency_seconds > 1)
+# AND: CPU sobre 50% y temp sobre 30°C (solo si ambas verdaderas)
+(app_cpu_usage_percent > 50) and (app_temperature_celsius > 30)
+
+# OR: CPU alta o presencia de errores
+(app_cpu_usage_percent > 80) or (app_errors_total > 0)
+
+# UNLESS: muestra instancias 'up==0' que NO están en mantenimiento (ejemplo general)
 up == 0 unless on(instance) node_maintenance_mode == 1
+
 ```
 
 ## Modificadores
@@ -473,8 +516,21 @@ on(), ignoring(), group_left, group_right
 ```
 
 ```promql
-rate(app_requests_total[5m]) / ignoring(instance) rate(app_capacity_total[5m])
-sum(rate(app_requests_total[5m])) by (job) / on(job) group_left(version) app_build_info
+# 1) Ignorar 'instance' al dividir dos métricas (si existirán instances distintas)
+rate(app_requests_total[5m]) / ignoring(instance) rate(app_errors_total[5m])
+# (usa range vectors — puede devolver vacío con Pushgateway)
+
+# 2) Match solo por job: dividir tasa de requests por conteo de procesamiento (ambas comparten job)
+rate(app_requests_total[5m]) / on(job) rate(app_processing_time_seconds_count[5m])
+# (usa range vectors)
+
+# 3) group_left: si el lado derecho tuviera una etiqueta extra que queremos mantener
+# En tu entorno no hay métricas con 'version' o 'build_info', pero aquí un patrón válido:
+sum(rate(app_requests_total[5m])) by (job)
+  / on(job) group_left()  (app_processing_time_seconds_count)
+# (aquí usamos group_left() vacío para permitir que la derecha tenga series adicionales;
+#  ajustar la lista de labels en group_left(...) si añades metadata después)
+
 ```
 
 ---

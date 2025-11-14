@@ -232,3 +232,9 @@ graph LR
 ---
 
 Con esta configuración, tu flujo de métricas estará completamente funcional desde el entorno local hasta la nube.
+
+
+sudo rm -rf data
+sudo mkdir data
+sudo chown -R 65534:65534 data
+sudo chmod -R 775 data
