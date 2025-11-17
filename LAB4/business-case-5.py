@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""
-saas_push.py
-
-Simulador de métricas de plataforma SaaS que hace PUSH aditivo a Pushgateway.
-Genera métricas de rendimiento, errores, infraestructura y negocio de forma
-continua usando pushadd_to_gateway.
-
-Requisitos:
-    pip install prometheus_client
-
-Uso:
-    python3 saas_push.py --instance <instance-name> --pushgateway http://localhost:9091 --interval 5
-"""
-
 import time
 import random
 import argparse

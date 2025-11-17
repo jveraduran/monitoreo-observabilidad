@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""
-banking_push.py
-
-Simulador de métricas bancarias que hace PUSH a Pushgateway.
-Genera métricas (counters, gauges, histograms) y las envía usando
-pushadd_to_gateway para no sobrescribir series previas, permitiendo la
-recolección constante por Prometheus.
-
-Requisitos:
-    pip install prometheus_client
-
-Uso:
-    python3 banking_push.py --instance <instance-name> --pushgateway http://localhost:9091 --interval 5
-"""
-
 import time
 import random
 import argparse
@@ -147,12 +132,17 @@ def simulate_and_push(args):
             else:
                 registry.atm_out_of_service_total.labels(reason="hardware_fail").inc(1)
 
-        # --- 4. Seguridad y Fraude ---
+        # --- 4. Seguridad y Fraude (LOGICA MEJORADA) ---
         for ch in channels:
             registry.security_login_success_total.labels(channel=ch).inc(random.randint(10, 100))
-        registry.security_login_failed_total.labels(reason="credentials_fail").inc(random.randint(1, 5))
-        if random.random() < 0.05:
-            registry.security_fraud_alerts_total.labels(severity="critical").inc(1)
+        
+        # Incremento garantizado y más alto para fallos de login
+        registry.security_login_failed_total.labels(reason="credentials_fail").inc(random.randint(3, 10))
+        
+        # Mayor probabilidad (0.2) y mayor incremento (1 a 3) para las alertas de fraude
+        if random.random() < 0.2:
+            num_alerts = random.randint(1, 3)
+            registry.security_fraud_alerts_total.labels(severity="critical").inc(num_alerts)
 
         # --- 5. Backend / APIs ---
         for svc in api_services:

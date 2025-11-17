@@ -136,5 +136,5 @@ sum(rate(ecom_orders_paid_total[15m]))
 ### Uso del Script
 
 ```bash
-python3 business-case-1.py --pushgateway http://localhost:9091 --job banking_core_job --instance bank-prod-sim --interval 5
+python3 business-case-1.py --pushgateway http://localhost:9091 --job ecommerce_job --instance ecommerce-sim-1 --interval 5
 ```

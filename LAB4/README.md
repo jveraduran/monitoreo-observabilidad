@@ -92,7 +92,7 @@ source venv/bin/activate
 Instalar librería Prometheus:
 
 ``` bash
-pip install prometheus_client
+pip install prometheus_client requests
 ```
 
 Clonar repositorio:

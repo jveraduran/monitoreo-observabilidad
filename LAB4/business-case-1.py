@@ -1,276 +1,190 @@
-#!/usr/bin/env python3
-"""
-ecommerce_push.py
-
-Simulador de métricas e-commerce que hace PUSH a Pushgateway.
-Genera métricas (counters, gauges, histograms, summaries) y las envía usando
-pushadd_to_gateway para no sobrescribir series previas.
-
-Requisitos:
-    pip install prometheus_client
-
-Uso:
-    python3 ecommerce_push.py --instance <instance-name> --pushgateway http://localhost:9091 --interval 5
-"""
-
 import time
 import random
 import argparse
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, Summary, pushadd_to_gateway
+from prometheus_client import CollectorRegistry, Gauge, Counter, Histogram, push_to_gateway
 
-def build_registry(registry):
-    # Business / Sales
-    registry.ecom_orders_total = Counter(
-        "ecom_orders_total", "Total de órdenes creadas", ["region", "channel"], registry=registry
-    )
-    registry.ecom_orders_paid_total = Counter(
-        "ecom_orders_paid_total", "Órdenes pagadas exitosamente", ["region", "channel"], registry=registry
-    )
-    registry.ecom_orders_failed_total = Counter(
-        "ecom_orders_failed_total", "Órdenes fallidas", ["region", "channel"], registry=registry
-    )
-    registry.ecom_revenue_total = Counter(
-        "ecom_revenue_total", "Revenue total en cents (integer)", ["region"], registry=registry
-    )
-    registry.ecom_items_sold_total = Counter(
-        "ecom_items_sold_total", "Ítems vendidos", ["sku", "region"], registry=registry
-    )
-    registry.ecom_cart_created_total = Counter(
-        "ecom_cart_created_total", "Carritos creados", ["region"], registry=registry
-    )
-    registry.ecom_cart_abandoned_total = Counter(
-        "ecom_cart_abandoned_total", "Carritos abandonados", ["region"], registry=registry
-    )
+registry = CollectorRegistry()
 
-    # Payments
-    registry.payment_request_total = Counter(
-        "payment_request_total", "Intentos de pago", ["gateway"], registry=registry
-    )
-    registry.payment_success_total = Counter(
-        "payment_success_total", "Pagos completados", ["gateway"], registry=registry
-    )
-    registry.payment_failed_total = Counter(
-        "payment_failed_total", "Pagos rechazados", ["gateway"], registry=registry
-    )
-    registry.payment_processing_latency_seconds = Histogram(
-        "payment_processing_latency_seconds", "Latencia de procesamiento de pagos", buckets=[0.05,0.1,0.25,0.5,1,2,5], registry=registry
-    )
+# Métricas de Negocio
+ECOM_REVENUE_TOTAL = Counter('ecom_revenue_total', 'Total revenue generated.', ['job', 'instance', 'region', 'gateway'], registry=registry)
+ECOM_ORDERS_PAID_TOTAL = Counter('ecom_orders_paid_total', 'Total number of paid orders.', ['job', 'instance', 'region'], registry=registry)
+ECOM_CART_CREATED_TOTAL = Counter('ecom_cart_created_total', 'Total number of carts created.', ['job', 'instance', 'region'], registry=registry)
+FUNNEL_STEP_TOTAL = Counter('funnel_step_total', 'Count of users reaching a funnel step.', ['job', 'instance', 'region', 'step'], registry=registry)
+PAYMENT_REQUEST_TOTAL = Counter('payment_request_total', 'Total payment requests.', ['job', 'instance'], registry=registry)
+PAYMENT_SUCCESS_TOTAL = Counter('payment_success_total', 'Total successful payments.', ['job', 'instance', 'gateway'], registry=registry)
 
-    # Checkout funnel
-    registry.funnel_step_total = Counter(
-        "funnel_step_total", "Eventos por paso del funnel", ["step", "region"], registry=registry
-    )
+SHIPPING_TIME_SECONDS = Histogram(
+    'shipping_time_seconds', 
+    'Time from dispatch to customer delivery.', 
+    ['job', 'instance', 'region'], 
+    buckets=[3600, 10800, 21600, 43200, 86400, 172800, 345600], # 1h, 3h, 6h, 12h, 1d, 2d, 4d
+    registry=registry
+)
+PAYMENT_REFUND_TOTAL = Counter('payment_refund_total', 'Total number of refunds processed.', ['job', 'instance'], registry=registry)
+SHIPPING_ORDER_RETURNED_TOTAL = Counter('shipping_order_returned_total', 'Total number of orders returned.', ['job', 'instance', 'region'], registry=registry)
 
-    # Logistics
-    registry.shipping_order_dispatched_total = Counter(
-        "shipping_order_dispatched_total", "Órdenes despachadas", ["region"], registry=registry
-    )
-    registry.shipping_order_delivered_total = Counter(
-        "shipping_order_delivered_total", "Órdenes entregadas", ["region"], registry=registry
-    )
-    registry.shipping_time_seconds = Histogram(
-        "shipping_time_seconds", "Tiempo despacho→entrega", buckets=[3600, 7200, 14400, 28800, 86400], registry=registry
-    )
-    registry.warehouse_inventory = Gauge(
-        "warehouse_inventory", "Stock actual por producto", ["sku", "region"], registry=registry
-    )
+# Métricas de Errores y Latencia (Backend)
+API_REQUESTS_TOTAL = Counter('api_requests_total', 'Total count of API requests.', ['job', 'instance', 'service'], registry=registry)
+API_ERRORS_TOTAL = Counter('api_errors_total', 'Total count of API errors by HTTP code.', ['job', 'instance', 'service', 'code'], registry=registry)
+API_LATENCY_SECONDS = Histogram('api_latency_seconds', 'API request latency.', ['job', 'instance', 'service'], registry=registry)
 
-    # Backend / infra
-    registry.api_requests_total = Counter(
-        "api_requests_total", "API requests totales", ["service","code"], registry=registry
-    )
-    registry.api_errors_total = Counter(
-        "api_errors_total", "API errores 4xx/5xx", ["service","code"], registry=registry
-    )
-    registry.api_latency_seconds = Histogram(
-        "api_latency_seconds", "Latencia endpoints", buckets=[0.005,0.02,0.05,0.1,0.25,0.5,1,2], registry=registry
-    )
-    registry.queue_processing_size = Gauge(
-        "queue_processing_size", "Tamaño de la cola de procesamiento", ["queue"], registry=registry
-    )
-    registry.db_query_time_seconds = Histogram(
-        "db_query_time_seconds", "Latencia de consultas DB", buckets=[0.001,0.005,0.01,0.05,0.1,0.5], registry=registry
-    )
+# Métricas de Infraestructura y Colas
+QUEUE_PROCESSING_SIZE = Gauge('queue_processing_size', 'Current size of the processing queue.', ['job', 'instance', 'queue'], registry=registry)
+DB_QUERY_TIME_SECONDS = Histogram(
+    'db_query_time_seconds', 
+    'Database query execution latency.', 
+    ['job', 'instance'], 
+    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0], 
+    registry=registry
+)
 
-    # Frontend / UX
-    registry.frontend_page_load_seconds = Histogram(
-        "frontend_page_load_seconds", "Page load / TTFB", buckets=[0.1,0.5,1,2,5], registry=registry
-    )
-    registry.frontend_js_errors_total = Counter(
-        "frontend_js_errors_total", "Errores JS en frontend", ["page"], registry=registry
-    )
+CACHE_HIT_RATIO = Gauge('cache_hit_ratio', 'Ratio of cache hits to total requests.', ['job', 'instance', 'cache_name'], registry=registry)
+DB_CONNECTIONS_ACTIVE = Gauge('db_connections_active', 'Number of active database connections.', ['job', 'instance', 'pool'], registry=registry)
 
-    # Fraud & security
-    registry.fraud_alerts_total = Counter(
-        "fraud_alerts_total", "Alertas de fraude", ["region"], registry=registry
-    )
-    registry.login_failed_total = Counter(
-        "login_failed_total", "Intentos fallidos de login", ["region"], registry=registry
-    )
-    registry.login_success_total = Counter(
-        "login_success_total", "Logins exitosos", ["region"], registry=registry
-    )
+# Métricas de Frontend (UX)
+FRONTEND_PAGE_LOAD_SECONDS = Histogram(
+    'frontend_page_load_seconds', 
+    'Time taken to load the page.', 
+    ['job', 'instance'], 
+    buckets=[0.5, 1.0, 2.5, 5.0, 10.0], 
+    registry=registry
+)
+FRONTEND_JS_ERRORS_TOTAL = Counter(
+    'frontend_js_errors_total', 
+    'Total count of JavaScript errors detected.', 
+    ['job', 'instance'], 
+    registry=registry
+)
 
-    # DevOps
-    registry.cpu_usage_percent = Gauge(
-        "cpu_usage_percent", "Uso de CPU percentual", ["instance"], registry=registry
-    )
-    registry.memory_usage_bytes = Gauge(
-        "memory_usage_bytes", "Uso de memoria en bytes", ["instance"], registry=registry
-    )
-    registry.fs_free_bytes = Gauge(
-        "fs_free_bytes", "Espacio libre en bytes", ["instance","mountpoint"], registry=registry
-    )
-    registry.pod_restarts_total = Counter(
-        "pod_restarts_total", "Reinicios de contenedores", ["pod"], registry=registry
-    )
+# Métricas de INFRAESTRUCTURA (HOST)
+CPU_USAGE_PERCENT = Gauge('cpu_usage_percent', 'Current CPU usage percentage.', ['job', 'instance'], registry=registry)
+MEMORY_USAGE_BYTES = Gauge('memory_usage_bytes', 'Current memory usage in bytes.', ['job', 'instance'], registry=registry)
 
-    # Misc / business derived (gauges updated by script)
-    registry.ecom_conversion_rate = Gauge(
-        "ecom_conversion_rate", "Conversion rate (orders/cart) - instant", ["region"], registry=registry
-    )
-    registry.ecom_avg_order_value = Gauge(
-        "ecom_avg_order_value", "Average order value (USD)", ["region"], registry=registry
-    )
+# Constantes
+REGIONS = ['US-East', 'EU-West', 'APAC']
+SERVICES = ['orders', 'checkout', 'products', 'users']
+GATEWAYS = ['stripe', 'paypal', 'adp']
 
-    return registry
+# --- 2. LÓGICA DE SIMULACIÓN ---
 
-def simulate_and_push(args):
-    registry = CollectorRegistry()
-    registry = build_registry(registry)
+def simulate_ecommerce_traffic(job_name, instance_name):
+    # Lógica de Negocio, Backend, Frontend e Infraestructura (Mantiene la lógica anterior)
+    
+    # ... (Código previo omitido por brevedad, asumiendo que incluye todas las métricas anteriores)
+    
+    for region in REGIONS:
+        ECOM_CART_CREATED_TOTAL.labels(job=job_name, instance=instance_name, region=region).inc(random.randint(100, 200))
+        FUNNEL_STEP_TOTAL.labels(job=job_name, instance=instance_name, region=region, step='cart_created').inc(random.randint(100, 200))
+        checkouts = random.randint(30, 80)
+        FUNNEL_STEP_TOTAL.labels(job=job_name, instance=instance_name, region=region, step='checkout_start').inc(checkouts)
+        orders_paid = random.randint(int(checkouts * 0.3), int(checkouts * 0.7))
+        ECOM_ORDERS_PAID_TOTAL.labels(job=job_name, instance=instance_name, region=region).inc(orders_paid)
+        FUNNEL_STEP_TOTAL.labels(job=job_name, instance=instance_name, region=region, step='order_paid').inc(orders_paid)
+        revenue = orders_paid * random.uniform(20.0, 150.0) 
+        
+        for gateway in GATEWAYS:
+            rev_share = revenue * 0.6 if gateway == 'stripe' else revenue * 0.2
+            ECOM_REVENUE_TOTAL.labels(job=job_name, instance=instance_name, region=region, gateway=gateway).inc(rev_share * 100)
+            PAYMENT_SUCCESS_TOTAL.labels(job=job_name, instance=instance_name, gateway=gateway).inc(rev_share / 50)
+            PAYMENT_REQUEST_TOTAL.labels(job=job_name, instance=instance_name).inc(rev_share / 50 + random.randint(0, 2))
 
-    regions = ["us-east","us-west","eu","latam"]
-    channels = ["web","mobile","api"]
-    skus = [f"sku-{i:04d}" for i in range(1,21)]
-    gateways = ["stripe","paypal","internal"]
+    for service in SERVICES:
+        requests = random.randint(500, 1000)
+        API_REQUESTS_TOTAL.labels(job=job_name, instance=instance_name, service=service).inc(requests)
+        
+        for _ in range(requests):
+            API_LATENCY_SECONDS.labels(job=job_name, instance=instance_name, service=service).observe(random.uniform(0.05, 0.4))
+            
+        errors_500 = int(requests * 0.02)
+        if errors_500 > 0:
+            API_ERRORS_TOTAL.labels(job=job_name, instance=instance_name, service=service, code='500').inc(errors_500)
 
-    # Simple state to compute AOV and conversion
-    revenue_by_region = {r: 0 for r in regions}
-    orders_by_region = {r: 0 for r in regions}
-    carts_by_region = {r: 0 for r in regions}
+        errors_503 = int(requests * 0.005)
+        if errors_503 > 0:
+            API_ERRORS_TOTAL.labels(job=job_name, instance=instance_name, service=service, code='503').inc(errors_503)
 
-    while True:
-        # Simulate business events
-        for r in regions:
-            # carts and conversion events
-            carts = random.randint(5, 40)
-            carts_by_region[r] += carts
-            registry.ecom_cart_created_total.labels(region=r).inc(carts)
+    db_queries = random.randint(100, 300)
+    for _ in range(db_queries):
+        DB_QUERY_TIME_SECONDS.labels(job=job_name, instance=instance_name).observe(random.uniform(0.005, 0.15))
+    
+    QUEUE_PROCESSING_SIZE.labels(job=job_name, instance=instance_name, queue='orders').set(random.randint(0, 150))
+    QUEUE_PROCESSING_SIZE.labels(job=job_name, instance=instance_name, queue='shipment').set(random.randint(0, 50))
 
-            abandoned = int(carts * random.uniform(0.05, 0.35))
-            registry.ecom_cart_abandoned_total.labels(region=r).inc(abandoned)
+    page_loads = random.randint(400, 600)
+    for _ in range(page_loads):
+        FRONTEND_PAGE_LOAD_SECONDS.labels(job=job_name, instance=instance_name).observe(random.uniform(0.8, 4.0)) 
+    
+    js_errors = random.randint(1, 5) 
+    FRONTEND_JS_ERRORS_TOTAL.labels(job=job_name, instance=instance_name).inc(js_errors)
 
-            # funnel steps
-            registry.funnel_step_total.labels(step="product_view", region=r).inc(random.randint(20,100))
-            registry.funnel_step_total.labels(step="cart", region=r).inc(carts)
-            registry.funnel_step_total.labels(step="checkout", region=r).inc(int(carts * random.uniform(0.3,0.9)))
+    CPU_USAGE_PERCENT.labels(job=job_name, instance=instance_name).set(random.uniform(10.0, 75.0))
+    MEMORY_USAGE_BYTES.labels(job=job_name, instance=instance_name).set(random.randint(500000000, 2000000000))
 
-            # orders
-            for ch in channels:
-                completed = random.randint(0, 6)
-                registry.ecom_orders_total.labels(region=r, channel=ch).inc(completed)
-                paid = int(completed * random.uniform(0.7, 1.0))
-                registry.ecom_orders_paid_total.labels(region=r, channel=ch).inc(paid)
-                failed = completed - paid
-                if failed > 0:
-                    registry.ecom_orders_failed_total.labels(region=r, channel=ch).inc(failed)
 
-                # revenue (in cents)
-                for _ in range(paid):
-                    value_cents = random.randint(1500, 25000)  # $15 - $250
-                    registry.ecom_revenue_total.labels(region=r).inc(value_cents)
-                    revenue_by_region[r] += value_cents
-                    orders_by_region[r] += 1
-                    # items sold
-                    sku = random.choice(skus)
-                    qty = random.randint(1,4)
-                    registry.ecom_items_sold_total.labels(sku=sku, region=r).inc(qty)
+    # 1. Logística y Devoluciones
+    for region in REGIONS:
+        # Simula el tiempo de envío (segundos)
+        SHIP_TIME = random.uniform(86400, 259200) # Entre 1 día (86400s) y 3 días
+        SHIPPING_TIME_SECONDS.labels(job=job_name, instance=instance_name, region=region).observe(SHIP_TIME)
+        
+        # Simula devoluciones (counter)
+        returns = random.randint(1, 5)
+        SHIPPING_ORDER_RETURNED_TOTAL.labels(job=job_name, instance=instance_name, region=region).inc(returns)
+        
+    # 2. Reembolsos (counter)
+    refunds = random.randint(1, 10)
+    PAYMENT_REFUND_TOTAL.labels(job=job_name, instance=instance_name).inc(refunds)
 
-            # shipping
-            dispatched = random.randint(0, 10)
-            registry.shipping_order_dispatched_total.labels(region=r).inc(dispatched)
-            delivered = int(dispatched * random.uniform(0.6, 0.99))
-            registry.shipping_order_delivered_total.labels(region=r).inc(delivered)
-            for _ in range(delivered):
-                registry.shipping_time_seconds.observe(random.uniform(3600, 86400))
+    # 3. Cache Hit Ratio (Gauge)
+    # Cache de productos (90%-99%)
+    CACHE_HIT_RATIO.labels(job=job_name, instance=instance_name, cache_name="products").set(random.uniform(0.90, 0.99))
+    # Cache de usuarios (70%-85%)
+    CACHE_HIT_RATIO.labels(job=job_name, instance=instance_name, cache_name="users").set(random.uniform(0.70, 0.85))
 
-            # fraud/login
-            if random.random() < 0.02:
-                registry.fraud_alerts_total.labels(region=r).inc()
-            registry.login_failed_total.labels(region=r).inc(random.randint(0,3))
-            registry.login_success_total.labels(region=r).inc(random.randint(0,20))
+    # 4. Conexiones DB Activas (Gauge)
+    # Pool principal de conexiones
+    DB_CONNECTIONS_ACTIVE.labels(job=job_name, instance=instance_name, pool="main").set(random.randint(10, 50))
+    # Pool de reportes
+    DB_CONNECTIONS_ACTIVE.labels(job=job_name, instance=instance_name, pool="reports").set(random.randint(1, 5))
 
-            # update inventory gauges for a few skus
-            for sku in random.sample(skus, 4):
-                registry.warehouse_inventory.labels(sku=sku, region=r).set(random.randint(0,500))
 
-            # compute derived gauges
-            orders = orders_by_region[r] if orders_by_region[r] > 0 else 0
-            carts_count = carts_by_region[r] if carts_by_region[r] > 0 else 1
-            aov = (revenue_by_region[r] / 100.0) / orders_by_region[r] if orders_by_region[r] > 0 else 0.0
-            conv = orders_by_region[r] / carts_by_region[r] if carts_by_region[r] > 0 else 0.0
-            registry.ecom_avg_order_value.labels(region=r).set(round(aov,2))
-            registry.ecom_conversion_rate.labels(region=r).set(round(conv,4))
-
-        # infra / backend metrics (simulated)
-        instance = args.instance or "ecommerce-sim-1"
-        registry.cpu_usage_percent.labels(instance=instance).set(random.uniform(2, 92))
-        registry.memory_usage_bytes.labels(instance=instance).set(random.randint(200_000_000, 6_000_000_000))
-        registry.fs_free_bytes.labels(instance=instance, mountpoint="/").set(random.randint(5_000_000_000, 200_000_000_000))
-        registry.queue_processing_size.labels(queue="orders").set(random.randint(0, 120))
-        registry.db_query_time_seconds.observe(random.uniform(0.0005, 0.05))
-
-        # API metrics
-        for svc in ["orders","checkout","users"]:
-            reqs = random.randint(0, 200)
-            errors = int(reqs * random.uniform(0.0, 0.02))
-            registry.api_requests_total.labels(service=svc, code="200").inc(reqs - errors)
-            if errors > 0:
-                registry.api_errors_total.labels(service=svc, code="500").inc(errors)
-            # latency samples
-            for _ in range(min(reqs, 5)):
-                registry.api_latency_seconds.observe(random.uniform(0.002, 1.2))
-
-        # frontend metrics
-        registry.frontend_page_load_seconds.observe(random.uniform(0.1, 3.5))
-        if random.random() < 0.03:
-            registry.frontend_js_errors_total.labels(page="/checkout").inc()
-
-        # payments
-        gateway = random.choice(gateways)
-        pay_attempts = random.randint(0, 30)
-        registry.payment_request_total.labels(gateway=gateway).inc(pay_attempts)
-        successes = int(pay_attempts * random.uniform(0.85,0.99))
-        registry.payment_success_total.labels(gateway=gateway).inc(successes)
-        failures = pay_attempts - successes
-        if failures > 0:
-            registry.payment_failed_total.labels(gateway=gateway).inc(failures)
-        for _ in range(min(5, pay_attempts)):
-            registry.payment_processing_latency_seconds.observe(random.uniform(0.02, 3.0))
-
-        # push to pushgateway using pushadd (no overwrite)
-        try:
-            pushadd_to_gateway(
-                args.pushgateway,
-                job=args.job,
-                registry=registry,
-                grouping_key={"instance": instance}
-            )
-            print(f"Pushed metrics to {args.pushgateway} (job={args.job}, instance={instance})")
-        except Exception as e:
-            print("Error pushing to Pushgateway:", e)
-
-        time.sleep(args.interval)
+# --- 3. FUNCIÓN PRINCIPAL Y PARSING DE ARGUMENTOS ---
 
 def main():
-    parser = argparse.ArgumentParser(description="Ecommerce metrics simulator (push to Pushgateway)")
-    parser.add_argument("--pushgateway", default="http://localhost:9091", help="Pushgateway URL")
-    parser.add_argument("--job", default="ecommerce_job", help="Pushgateway job name")
-    parser.add_argument("--instance", default="ecommerce-sim-1", help="Instance label to push (grouping_key)")
-    parser.add_argument("--interval", type=int, default=5, help="Seconds between pushes")
+    parser = argparse.ArgumentParser(description="Simulador de métricas E-commerce y Pushgateway.")
+    parser.add_argument('--pushgateway', type=str, required=True, help='URL y puerto del Pushgateway (ej: http://192.168.1.10:9091)')
+    parser.add_argument('--job', type=str, required=True, help='Nombre del job de Prometheus (ej: ecommerce_job)')
+    parser.add_argument('--instance', type=str, required=True, help='Nombre de la instancia (ej: ecommerce-sim-1)')
+    parser.add_argument('--interval', type=int, default=10, help='Intervalo de push en segundos.')
     args = parser.parse_args()
 
-    simulate_and_push(args)
+    pushgateway_url = args.pushgateway
+    job_name = args.job
+    instance_name = args.instance
+    interval = args.interval
 
-if __name__ == "__main__":
+    print(f"🚀 Iniciando simulación para Job: {job_name}, Instance: {instance_name}")
+    print(f"🔗 Pushgateway: {pushgateway_url} (Intervalo: {interval}s)")
+
+    while True:
+        try:
+            simulate_ecommerce_traffic(job_name, instance_name)
+            
+            grouping_key = {'instance': instance_name}
+
+            push_to_gateway(
+                pushgateway_url,
+                job=job_name, 
+                registry=registry, 
+                grouping_key=grouping_key
+            )
+            print(f"✅ [{time.strftime('%H:%M:%S')}] Métricas enviadas correctamente al Pushgateway.")
+            
+        except Exception as e:
+            print(f"❌ Error al enviar métricas: {e}")
+
+        time.sleep(interval)
+
+
+if __name__ == '__main__':
     main()

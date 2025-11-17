@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""
-hospital_push.py
-
-Simulador de métricas hospitalarias que hace PUSH a Pushgateway.
-Genera métricas de hospital (Gauges, Counters, Histograms, Summaries) 
-y las envía de forma constante usando pushadd_to_gateway.
-
-Requisitos:
-    pip install prometheus_client
-
-Uso:
-    python3 hospital_push.py --instance <instance-name> --pushgateway http://localhost:9091 --interval 5
-"""
-
 import time
 import random
 import argparse
@@ -62,15 +48,19 @@ def build_registry(registry):
         registry=registry
     )
 
-    # 3. Calidad y Seguridad (Counters & Summaries)
+    # 3. Calidad y Seguridad (Counters & Histograms - Reemplaza Summary)
     registry.hospital_medication_errors_total = Counter(
         "hospital_medication_errors_total", "Medication errors", registry=registry
     )
     registry.hospital_patient_readmissions_total = Counter(
         "hospital_patient_readmissions_total", "Patient readmissions total (within 30 days)", registry=registry
     )
-    registry.hospital_surgery_duration_minutes_summary = Summary(
-        "hospital_surgery_duration_minutes_summary", "Surgery durations minutes", registry=registry
+    # MODIFICADO: Usar Histogram para calcular cuantiles de forma robusta con Pushgateway
+    registry.hospital_surgery_duration_minutes_histogram = Histogram(
+        "hospital_surgery_duration_minutes_histogram", 
+        "Surgery durations minutes distribution",
+        buckets=[30, 60, 120, 240, 480, 600, float('inf')],
+        registry=registry
     )
     registry.hospital_telemetry_errors_total = Counter(
         "hospital_telemetry_errors_total", "Telemetry/Monitoring errors", registry=registry
@@ -123,16 +113,17 @@ def simulate_and_push(args):
         for c in clinics:
             registry.hospital_appointments_completed_total.labels(clinic=c).inc(random.randint(5, 30))
 
-        # --- 3. Calidad y Seguridad (Counters & Summaries) ---
+        # --- 3. Calidad y Seguridad (Counters & Histograms) ---
         if random.random() < 0.05:
             registry.hospital_medication_errors_total.inc()
         if random.random() < 0.03:
             registry.hospital_patient_readmissions_total.inc()
             
         registry.hospital_telemetry_errors_total.inc(random.randint(0, 5))
-
+        
+        # MODIFICADO: Observar la duración en el nuevo Histogram
         for _ in range(random.randint(2, 8)):
-            registry.hospital_surgery_duration_minutes_summary.observe(random.uniform(30, 600))
+            registry.hospital_surgery_duration_minutes_histogram.observe(random.uniform(30, 600))
 
         # --- 4. Logística y Recursos (Gauges) ---
         for s in supplies:
