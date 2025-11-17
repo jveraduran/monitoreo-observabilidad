@@ -104,7 +104,7 @@ git clone https://github.com/jveraduran/monitoreo-observabilidad.git
 Ingresar a la carpeta del laboratorio:
 
 ``` bash
-cd monitoreo-observabilidad/LAB3
+cd monitoreo-observabilidad/LAB4
 ```
 
 ------------------------------------------------------------------------
@@ -215,6 +215,8 @@ sudo docker compose up -d
 ``` bash
 python3 business-case-[X].py
 ```
+
+Documentación oficial en [Python Client](https://prometheus.github.io/client_python/)
 
 ------------------------------------------------------------------------
 
