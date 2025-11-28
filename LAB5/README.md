@@ -64,7 +64,9 @@ Estos comandos instalarán la última versión de Python, `pip` y el soporte par
 1. Actualizar el índice de paquetes e instalar dependencias
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-pip python3-venv
+sudo apt install -y python3 python3-pip python3-venv git
+git clone https://github.com/jveraduran/monitoreo-observabilidad
+cd monitoreo-observabilidad
 ```
 
 2. Verificar la instalación
@@ -104,7 +106,7 @@ sudo apt install curl gnupg2 -y
 
 2. Agregar el repositorio de Node.js 20.x LTS
 ```bash
-curl -fsSL [https://deb.nodesource.com/setup_20.x](https://deb.nodesource.com/setup_20.x) | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 ```
 3. Instalar Node.js y npm
 ```bash
@@ -119,8 +121,8 @@ npm -v
 
 5. Inicializar el proyecto y dependencias de Node.js
 ```bash
-npm init -y # Crea el package.json (Solo en caso de no existir un package.json)
-npm install @aws-sdk/client-cloudwatch # Solo en caso de no existir un package-lock.json
+npm init -y
+npm install @aws-sdk/client-cloudwatch express
 ```
 
 ---
@@ -134,7 +136,8 @@ Script: aws-python-sdk.py (Envía 20 métricas al namespace MiAplicacion/UsoDisc
 
 2. Ejecuta el script:
 ```bash
-python3 aws-python-sdk.py
+# Modifica por la instancia que acabas de crear el campo "INSTANCE_ID_DIMENSION" en aws-python-sdk.py previo a ejecutar esta instrucción.
+python3 LAB5/aws-python-sdk.py
 ```
 
 ### 4.2. Node.js (AWS SDK)
@@ -145,17 +148,26 @@ Script: aws-nodejs.js (Envía 20 métricas al namespace AplicacionNodejs).
 
 2. Ejecuta el script:
 ```bash
-node aws-nodejs.js
+# Modifica por la instancia que acabas de crear el campo "INSTANCE_ID_DIMENSION" en aws-python-sdk.py previo a ejecutar esta instrucción.
+node LAB5/aws-nodejs.js
 ```
+3. Ejecuta una aplicación Node de prueba:
+```bash
+node LAB5/index.js
+```
+4. Modifica el security group de tu instancia, agregando como Inbound el Puerto 3000.
+5. Realiza una prueba, simulando un error 500 en http://[PUBLIC_IP]:3000/error-500
+
 ---
 
 ## 🚀 Siguientes Pasos
 Una vez ejecutados los scripts, verifica las métricas en la consola de AWS:
 
 1. Navega a la consola de Amazon CloudWatch.
-2. Ve a Métricas $\rightarrow$ Todas las métricas.
-3. Busca los namespaces:
+2. Explora todas las métricas disponibles en [AWS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html).
+3. Ve a Métricas $\rightarrow$ Todas las métricas.
+4. Busca los namespaces:
     - MiAplicacion/UsoDisco (Métricas de Python)
     - AplicacionNodejs (Métricas de Node.js)
 
-4. Crea un Dashboard que muestre la correlación entre el DiskUsedPercent y el HTTP5xxCount para mejorar la observabilidad.
+5. Crea un Dashboard que muestre la correlación entre el DiskUsedPercent y el HTTP5xxCount para mejorar la observabilidad.
