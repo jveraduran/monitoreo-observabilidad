@@ -49,12 +49,7 @@ Para completar esta guía, necesitarás lo siguiente:
 Antes de ejecutar cualquier script, debes configurar tus credenciales de AWS. Se recomienda el uso de **credenciales temporales** o **Roles de IAM**, pero si ejecutas localmente, puedes usar la CLI:
 
 1.  **Instala la AWS CLI** (si aún no lo has hecho).
-2.  **Configura un perfil** con tu Access Key y Secret Key. La región debe coincidir con la configurada en los scripts.
-    ```bash
-    aws configure
-    # Ingresa: AWS Access Key ID, AWS Secret Access Key, Default region name
-    ```
-    > **Nota:** Si usas `aws configure`, no necesitas codificar las credenciales en los scripts Python/Node.js.
+2.  **Configura un perfil** captura desde tu laboratorio AWS, tu Access Key, Secret Key y Session Token, y reemplazalo en los archivos ```aws-nodejs.js | aws-python-sdk.py```. La región debe coincidir con la configurada en los 
 
 ### 3.2. Instalación de Python
 
