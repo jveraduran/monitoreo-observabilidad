@@ -136,7 +136,7 @@ Script: aws-python-sdk.py (Envía 20 métricas al namespace MiAplicacion/UsoDisc
 
 2. Ejecuta el script:
 ```bash
-# Modifica por la instancia que acabas de crear el campo "INSTANCE_ID_DIMENSION" en aws-python-sdk.py previo a ejecutar esta instrucción.
+# Modifica por la instancia que acabas de crear el campo "INSTANCE_ID_DIMENSION" en aws-python-sdk.py previo a ejecutar esta instrucción. Además, agrega tu Access Key, Secret Key y Session Token.
 python3 LAB5/aws-python-sdk.py
 ```
 
@@ -148,7 +148,7 @@ Script: aws-nodejs.js (Envía 20 métricas al namespace AplicacionNodejs).
 
 2. Ejecuta el script:
 ```bash
-# Modifica por la instancia que acabas de crear el campo "INSTANCE_ID_DIMENSION" en aws-python-sdk.py previo a ejecutar esta instrucción.
+# Modifica por la instancia que acabas de crear el campo "INSTANCE_ID_DIMENSION" en aws-python-sdk.py previo a ejecutar esta instrucción. Además, agrega tu Access Key, Secret Key y Session Token.
 node LAB5/aws-nodejs.js
 ```
 3. Ejecuta una aplicación Node de prueba:
